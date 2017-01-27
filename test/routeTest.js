@@ -5,7 +5,8 @@ describe('Route loads properly', function() {
     it('should load route with init, name and second processors', function() {
         routes.init('my route', () => console.log('init'))
             .registerProcessor(() => console.log('my processor'))
-        assert(routes.getRoutes().name, 'my route')
-        assert(routes.getRoutes().processes.length, 2)
+            .end()
+        assert(routes.getRoutes()[0].name, 'my route')
+        assert(routes.getRoutes()[0].processes.length, 2)
     });
 });
