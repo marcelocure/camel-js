@@ -45,24 +45,34 @@ function sendMessage(routeName, message) {
     const route = getRoute(routeName)
     var exchange = message
     try {
-        exchange = processRoute(route, exchange)
+        return processRoute(route, exchange)
     } catch(e) {
-        var err = true
-        for(var i = 0 ; i < retryRepetitions ; i++) {
-            try {
-                setTimeout(() => {
-                    exchange = processRoute(route, exchange)
-                    err = false
-                }, retryDelay)
-            } catch(err) {
-                attempt++
-                err = true
-            }
-        }
-        if (!err) return exchange
-        else sendMessage('onException', exchange)
+        console.log(`Starting retries, exchange: [${exchange}]`)
+        var retryResult = doRetries(route, exchange)
+        if (retryResult.error) sendMessage('onException', exchange)
+        else return retryResult.exchange
     }
-    return exchange
+    
+}
+
+function doRetries(route, exchange) {
+    var err = true
+    for(var i = 0 ; i < retryRepetitions ; i++) {
+        console.log(`Retry attempt ${i}, exchange: [${exchange}]`)
+        try {
+            setTimeout(() => {
+                exchange = processRoute(route, exchange)
+                err = false
+                console.log(`Retry attempt ${i} suceeded, exchange: [${exchange}]`)
+                i = retryRepetitions
+            }, retryDelay)
+        } catch(err) {
+            err = true
+            console.log(`Retry attempt ${i} failed, exchange: [${exchange}]`)
+        }
+    }
+
+    return {error: err, exchange: ex}
 }
 
 function onException(repetitions, delay, fallbackProcessor) {
