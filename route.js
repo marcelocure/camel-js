@@ -5,12 +5,12 @@ var route
 function init(name, processor) {
     route = {}
     route.name = name
-    route.processes = [processor]
+    route.processors = []
     return this
 }
 
 function registerProcessor(processor) {
-    route.processes.push(processor)
+    route.processors.push(processor)
     return this
 }
 
@@ -19,11 +19,21 @@ function end() {
 }
 
 function loadSubRoutes(route) {
-    R.map(f => f(), route.processes)
+    R.map(f => f(), route.processors)
 }
 
 function load() {
     R.map(loadSubRoutes, routes)
+}
+
+function sendMessage(routeName, message) {
+    const route = R.find(R.propEq('name', routeName))(routes)
+    // R.map(processor => processor(message), route.processors)
+    var exchange = message
+    route.processors.forEach(processor => {
+        exchange = processor(exchange)
+    })
+    return exchange
 }
 
 module.exports = {
@@ -31,5 +41,6 @@ module.exports = {
     init: init,
     load: load,
     end: end,
-    getRoutes: () => routes
+    getRoutes: () => routes,
+    sendMessage: sendMessage
 }
