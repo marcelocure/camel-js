@@ -1,12 +1,22 @@
 var routes = require('./route')
 
-routes.init('my route', () => console.log('init'))
-    .registerProcessor(() => console.log('my processor'))
+routes.init('submitOrder')
+    .registerProcessor(orderProcessor)
+    .registerProcessor(updateStatusProcessor)
     .end()
 
-routes.init('my second route', () => console.log('init2'))
-    .registerProcessor(() => console.log('my processor2'))
-    .registerProcessor(() => console.log('my processor3'))
-    .end()
+routes.sendMessage('submitOrder', 'message')
 
-routes.load()
+
+function orderProcessor(exchange) {
+    var order = {exchange: exchange}
+    console.log('orderProcessor '+JSON.stringify(order))
+    return order
+}
+
+function updateStatusProcessor(exchange) {
+    var order = exchange
+    order.status = 'Completed'
+    console.log('updateStatusProcessor '+JSON.stringify(order))
+    return order
+}
