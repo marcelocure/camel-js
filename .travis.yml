@@ -1,6 +1,6 @@
 language: node_js
 javascript:
-  - "6"
+  - "6.1"
 # command to install dependencies
 install:
   - "npm install"
