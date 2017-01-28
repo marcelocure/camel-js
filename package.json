@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "test": "mocha",
-    "test-cov": "istanbul cover _mocha"
+    "test-cov": "istanbul cover _mocha",
+    "coveralls": "cat ./coverage/lcov.info | ./node_modules/.bin/coveralls"
   },
   "author": "marcelo cure",
   "license": "ISC",
