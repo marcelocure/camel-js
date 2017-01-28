@@ -33,6 +33,7 @@ function sendMessage(routeName, message) {
     route.processors.forEach(processor => {
         exchange = processor(exchange)
     })
+    return exchange
 }
 
 module.exports = {
