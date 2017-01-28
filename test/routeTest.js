@@ -7,6 +7,6 @@ describe('Route loads properly', function() {
             .registerProcessor(() => console.log('my processor'))
             .end()
         assert(routes.getRoutes()[0].name, 'my route')
-        assert(routes.getRoutes()[0].processes.length, 2)
+        assert(routes.getRoutes()[0].processors.length, 2)
     });
 });
