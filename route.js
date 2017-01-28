@@ -1,6 +1,8 @@
 const R = require('ramda')
-var routes = []
-var route
+var routes = [],
+    route,
+    retryRepetitions = 1,
+    retryDelay = 1000
 
 function init(name, processor) {
     route = {}
@@ -40,7 +42,16 @@ function sendMessage(routeName, message) {
     return exchange
 }
 
+function onException(repetitions, delay, fallbackProcessor) {
+    retryRepetitions = repetitions
+    retryDelay = delay
+    this.init('onException')
+    .registerProcessor(fallbackProcessor)
+    .end()
+}
+
 module.exports = {
+    onException: onException,
     registerProcessor: registerProcessor,
     init: init,
     load: load,

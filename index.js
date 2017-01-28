@@ -5,6 +5,8 @@ routes.init('submitOrder')
     .registerProcessor(updateStatusProcessor)
     .end()
 
+routes.onException(10, 2000, exchange => console.log(`Redelivery: [${exchange}]`))
+
 routes.sendMessage('submitOrder', 'message')
 
 function orderProcessor(exchange) {
