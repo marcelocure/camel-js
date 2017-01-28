@@ -32,13 +32,36 @@ function getRoute(routeName) {
     return R.find(R.propEq('name', routeName))(routes)
 }
 
+function processRoute(route, exchange) {
+    var ex = exchange
+    route.processors.forEach(processor => {
+        console.log(`Exchange: [${exchange}]`)
+        ex = processor(exchange)
+    })
+    return ex
+}
+
 function sendMessage(routeName, message) {
     const route = getRoute(routeName)
     var exchange = message
-    route.processors.forEach(processor => {
-        console.log(`Exchange: [${exchange}]`)
-        exchange = processor(exchange)
-    })
+    try {
+        exchange = processRoute(route, exchange)
+    } catch(e) {
+        var err = true
+        for(var i = 0 ; i < retryRepetitions ; i++) {
+            try {
+                setTimeout(() => {
+                    exchange = processRoute(route, exchange)
+                    err = false
+                }, retryDelay)
+            } catch(err) {
+                attempt++
+                err = true
+            }
+        }
+        if (!err) return exchange
+        else sendMessage('onException', exchange)
+    }
     return exchange
 }
 
