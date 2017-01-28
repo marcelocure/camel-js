@@ -6,3 +6,4 @@ install:
   - "npm install"
 # command to run tests
 script: " npm run test-cov"
+after_success: 'npm run coveralls'
