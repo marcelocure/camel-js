@@ -1,0 +1,8 @@
+language: javascript
+javascript:
+  - "6.0"
+# command to install dependencies
+install:
+  - "npm install"
+# command to run tests
+script: " npm run test-cov"
