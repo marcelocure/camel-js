@@ -1,8 +1,8 @@
 var routes = require('./route')
 
 routes.init('submitOrder')
-    .registerProcessor(orderProcessor)
-    .registerProcessor(updateStatusProcessor)
+    .to(orderProcessor)
+    .to(updateStatusProcessor)
     .end()
 
 routes.onException(10, 2000, exchange => console.log(`Redelivery: [${exchange}]`))

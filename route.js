@@ -11,7 +11,7 @@ function init(name, processor) {
     return this
 }
 
-function registerProcessor(processor) {
+function to(processor) {
     route.processors.push(processor)
     return this
 }
@@ -79,13 +79,13 @@ function onException(repetitions, delay, fallbackProcessor) {
     retryRepetitions = repetitions
     retryDelay = delay
     this.init('onException')
-    .registerProcessor(fallbackProcessor)
+    .to(fallbackProcessor)
     .end()
 }
 
 module.exports = {
     onException: onException,
-    registerProcessor: registerProcessor,
+    to: to,
     init: init,
     load: load,
     end: end,
