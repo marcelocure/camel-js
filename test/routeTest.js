@@ -11,13 +11,28 @@ describe('Route loads properly', function() {
     });
 
     it('should return exchange with status', function() {
-        routes.init('orderProcessor')
+        routes.init('orderProcess')
         .to(exchange => {
             return {body: exchange, status: 'Confirmed'}
         })
         .end()
-        var exchange = routes.sendMessage('orderProcessor','message')
+        var exchange = routes.sendMessage('orderProcess','message')
         assert(exchange.status, 'Confirmed')
         assert(exchange.body, 'message')
+    })
+
+    it('Should do retries and throw unexpected exception with default error processor', function() {
+        routes.init('orderProcessFailing')
+        .to(exchange => {
+            throw 'Unexpected exception'
+        })
+        .end()
+        routes.onException(5, 1000)
+
+        try {
+            var exchange = routes.sendMessage('orderProcessFailing', {})
+        } catch(e) {
+            assert(e,'Unexpected exception')
+        }
     })
 });

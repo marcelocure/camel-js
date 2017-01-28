@@ -2,7 +2,8 @@ const R = require('ramda')
 var routes = [],
     route,
     retryRepetitions = 1,
-    retryDelay = 1000
+    retryDelay = 1000,
+    routeFallbackProcessor = defaultFallbackProcessor
 
 function init(name, processor) {
     route = {}
@@ -11,6 +12,7 @@ function init(name, processor) {
     return this
 }
 
+//TODO change to {processor: processor, type: 'to'}
 function to(processor) {
     route.processors.push(processor)
     return this
@@ -47,40 +49,42 @@ function sendMessage(routeName, message) {
     try {
         return processRoute(route, exchange)
     } catch(e) {
-        console.log(`Starting retries, exchange: [${exchange}]`)
+        console.log(`Starting retries, exchange: [${JSON.stringify(exchange)}]`)
         var retryResult = doRetries(route, exchange)
-        if (retryResult.error) sendMessage('onException', exchange)
+        if (retryResult.error) routeFallbackProcessor(retryResult.exchange)
         else return retryResult.exchange
     }
-    
 }
 
 function doRetries(route, exchange) {
     var err = true
     for(var i = 0 ; i < retryRepetitions ; i++) {
-        console.log(`Retry attempt ${i}, exchange: [${exchange}]`)
+        console.log(`Retry attempt ${i}, exchange: [${JSON.stringify(exchange)}]`)
         try {
             setTimeout(() => {
                 exchange = processRoute(route, exchange)
                 err = false
-                console.log(`Retry attempt ${i} suceeded, exchange: [${exchange}]`)
+                console.warn(`Retry attempt ${i} suceeded, exchange: [${JSON.stringify(exchange)}]`)
                 i = retryRepetitions
             }, retryDelay)
-        } catch(err) {
+        } catch(e) {
             err = true
-            console.log(`Retry attempt ${i} failed, exchange: [${exchange}]`)
+            exchange.exception = e
+            console.error(`Retry attempt ${i} failed, exchange: [${exchange}], exception: [${exception}]`)
         }
     }
 
-    return {error: err, exchange: ex}
+    return {error: err, exchange: exchange}
 }
 
-function onException(repetitions, delay, fallbackProcessor) {
+function defaultFallbackProcessor(exchange) {
+    console.log(`defaultFallbackProcessor exchange: [${JSON.stringify(exchange)}]`)
+    throw exchange.exception
+}
+function onException(repetitions, delay, fallbackProcessor=defaultFallbackProcessor) {
     retryRepetitions = repetitions
     retryDelay = delay
-    this.init('onException')
-    .to(fallbackProcessor)
-    .end()
+    routeFallbackProcessor = fallbackProcessor
 }
 
 module.exports = {
