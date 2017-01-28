@@ -7,7 +7,6 @@ routes.init('submitOrder')
 
 routes.sendMessage('submitOrder', 'message')
 
-
 function orderProcessor(exchange) {
     var order = {exchange: exchange}
     console.log('orderProcessor '+JSON.stringify(order))

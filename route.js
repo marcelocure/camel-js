@@ -26,8 +26,12 @@ function load() {
     R.map(loadSubRoutes, routes)
 }
 
+function getRoute(routeName) {
+    return R.find(R.propEq('name', routeName))(routes)
+}
+
 function sendMessage(routeName, message) {
-    const route = R.find(R.propEq('name', routeName))(routes)
+    const route = getRoute(routeName)
     var exchange = message
     route.processors.forEach(processor => {
         console.log(`Exchange: [${exchange}]`)
