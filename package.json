@@ -5,12 +5,16 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "mocha"
+    "test": "mocha",
+    "test-cov": "istanbul cover _mocha"
   },
   "author": "marcelo cure",
   "license": "ISC",
   "dependencies": {
     "mocha": "^3.2.0",
     "ramda": "^0.23.0"
+  },
+  "devDependencies": {
+    "istanbul": "^0.4.5"
   }
 }
