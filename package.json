@@ -12,12 +12,16 @@
   "author": "marcelo cure",
   "license": "ISC",
   "dependencies": {
-    "mocha": "^3.2.0",
+    "bluebird": "^3.4.7",
+    "promise.pipe": "^3.0.0",
     "ramda": "^0.23.0"
   },
   "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
     "coveralls": "^2.11.15",
     "istanbul": "^0.4.5",
-    "mocha": "^3.2.0"
+    "mocha": "^3.2.0",
+    "mocha-as-promised": "^2.0.0"
   }
 }

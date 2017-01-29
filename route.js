@@ -1,4 +1,7 @@
-const R = require('ramda')
+const R = require('ramda'),
+      Promise = require('bluebird'),
+      pipeline = require('promise-sequence/lib/pipeline');
+
 var routes = [],
     route,
     retryRepetitions = 1,
@@ -35,12 +38,17 @@ function getRoute(routeName) {
 }
 
 function processRoute(route, exchange) {
-    var ex = exchange
-    route.processors.forEach(processor => {
-        console.log(`Exchange: [${exchange}]`)
-        ex = processor(exchange)
-    })
-    return ex
+    return pipeline(route.processors, [exchange])
+}
+
+function returnPromisified(func) {
+    if (func instanceof Promise) return func 
+    return val => {
+        new Promise((resolve, reject) => {
+            res = func(val)
+            resolve(res)
+        })
+    }
 }
 
 function sendMessage(routeName, message) {
@@ -81,6 +89,7 @@ function defaultFallbackProcessor(exchange) {
     console.log(`defaultFallbackProcessor exchange: [${JSON.stringify(exchange)}]`)
     throw exchange.exception
 }
+
 function onException(repetitions, delay, fallbackProcessor=defaultFallbackProcessor) {
     retryRepetitions = repetitions
     retryDelay = delay

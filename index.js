@@ -1,4 +1,6 @@
-var routes = require('./route')
+var routes = require('./route'),
+    Promise = require('bluebird'),
+    R = require('ramda')
 
 // routes.init('submitOrder')
 //     .to(orderProcessor)
@@ -23,15 +25,45 @@ var routes = require('./route')
 // }
 
 
-routes.init('orderProcessFailing')
+// routes.init('orderProcessFailing')
+// .to(exchange => {
+//     throw 'Unexpected exception'
+// })
+// .end()
+// routes.onException(5, 1000)
+
+// try {
+//     var exchange = routes.sendMessage('orderProcessFailing', {})
+// } catch(e) {
+//     e == 'Unexpected exception'
+// }
+
+
+
+routes.init('orderProcess')
 .to(exchange => {
-    throw 'Unexpected exception'
+    return {body: exchange, status: 'Confirmed'}
+})
+.to(exchange => {
+    var e = exchange
+    e.code = 12
+    return e
 })
 .end()
-routes.onException(5, 1000)
+return routes.sendMessage('orderProcess','message')
+.then(exchange => {
+    exchange.status == 'Confirmed'
+    exchange.body == 'message'
+})
 
-try {
-    var exchange = routes.sendMessage('orderProcessFailing', {})
-} catch(e) {
-    e == 'Unexpected exception'
-}
+
+// function doFirstThing(res){ return Promise.resolve(res); }  
+// function doSecondThing(res){ return Promise.resolve(res + 1); } 
+// function doSecondThing(res){ return Promise.resolve(res + 1); } 
+// function doSecondThing(res){ return Promise.resolve(res + 1); } 
+
+// var a = [doFirstThing, doSecondThing, doSecondThing, doSecondThing]
+
+// var pipeline = require('promise-sequence/lib/pipeline');
+// pipeline(a, [2])
+// .then(console.log)
