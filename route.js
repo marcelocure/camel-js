@@ -25,14 +25,6 @@ function end() {
     routes.push(route)
 }
 
-function loadSubRoutes(route) {
-    R.map(f => f(), route.processors)
-}
-
-function load() {
-    R.map(loadSubRoutes, routes)
-}
-
 function getRoute(routeName) {
     return R.find(R.propEq('name', routeName))(routes)
 }
@@ -41,15 +33,15 @@ function processRoute(route, exchange) {
     return pipeline(route.processors, [exchange])
 }
 
-function returnPromisified(func) {
-    if (func instanceof Promise) return func 
-    return val => {
-        new Promise((resolve, reject) => {
-            res = func(val)
-            resolve(res)
-        })
-    }
-}
+// function returnPromisified(func) {
+//     if (func instanceof Promise) return func 
+//     return val => {
+//         new Promise((resolve, reject) => {
+//             res = func(val)
+//             resolve(res)
+//         })
+//     }
+// }
 
 function sendMessage(routeName, message) {
     const route = getRoute(routeName)
@@ -100,7 +92,6 @@ module.exports = {
     onException: onException,
     to: to,
     init: init,
-    load: load,
     end: end,
     getRoutes: () => routes,
     sendMessage: sendMessage

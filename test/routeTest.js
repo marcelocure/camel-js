@@ -1,8 +1,8 @@
 var routes = require('../route');
 var assert = require('assert');
 
-describe('Route loads properly', function() {
-    it('should load route with init, name and second processors', function() {
+describe('Route loads properly', () =>  {
+    it('should load route with init, name and second processors', () =>  {
         routes.init('my route')
         .to(exchange => console.log('my processor'))
         .end()
@@ -10,7 +10,7 @@ describe('Route loads properly', function() {
         assert(routes.getRoutes()[0].processors.length, 2)
     });
 
-    it('should return exchange with status', function() {
+    it('should return exchange with status', () =>  {
         routes.init('orderProcess')
         .to(exchange => {
             return {body: exchange, status: 'Confirmed'}
@@ -24,7 +24,7 @@ describe('Route loads properly', function() {
         })
     })
 
-    it('Should do retries and throw unexpected exception with default error processor', function() {
+    it('Should do retries and throw unexpected exception with default error processor', () =>  {
         routes.init('orderProcessFailing')
         .to(exchange => {
             throw 'Unexpected exception'
@@ -37,4 +37,23 @@ describe('Route loads properly', function() {
             assert(e,'Unexpected exception')
         })
     })
-});
+
+    it('Should load mixed processors into promises', () => {
+        routes.init('tweetProcess')
+        .to(exchange => {
+            return {userId: 1, message: exchange}
+        })
+        .to(exchange => {
+            var tweet = exchange
+            tweet.date = new Date
+            return Promise.resolve(tweet)
+        })
+        .end()
+
+        return routes.sendMessage('tweetProcess', 'my tweet')
+        .then(exc => {
+            assert(exc.userId, 1)
+            assert(exc.message, 'my tweet')
+        })
+    })
+})
