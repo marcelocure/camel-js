@@ -1,4 +1,4 @@
-var routes = require('../route');
+var routes = require('../index');
 var assert = require('assert');
 
 describe('Route loads properly', () =>  {
