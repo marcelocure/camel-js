@@ -79,9 +79,9 @@ function onException(repetitions, delay, fallbackProcessor=defaultFallbackProces
     routeFallbackProcessor = fallbackProcessor
 }
 
-const pipeline = (funcs, exchange) => {
-    return funcs.reduce((acc, func) =>
-        acc.then(result => func(result)), Promise.resolve(exchange))
+const pipeline = (processors, exchange) => {
+    return processors.reduce((agg, processor) =>
+        agg.then(result => processor(result)), Promise.resolve(exchange))
 }
 
 module.exports = {
