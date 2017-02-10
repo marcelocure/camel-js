@@ -1,6 +1,5 @@
 const R = require('ramda'),
       Promise = require('bluebird');
-    //   pipeline = require('promise-sequence/lib/pipeline');
 
 var routes = [],
     route,
@@ -15,7 +14,6 @@ function init(name, processor) {
     return this
 }
 
-//TODO change to 
 function to(processor) {
     route.processors.push({unit: processor, type: 'processor'})
     return this
@@ -29,8 +27,12 @@ function getRoute(routeName) {
     return R.find(R.propEq('name', routeName))(routes)
 }
 
+function transformProcessor(processor) {
+    return processor.type === 'route' ? processRoute : processor.unit
+}
+
 function processRoute(route, exchange) {
-    const processors = R.map(proc => proc.unit ,route.processors)
+    const processors = R.map(transformProcessor ,route.processors)
     return pipeline(processors, exchange)
 }
 
