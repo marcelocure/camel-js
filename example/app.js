@@ -7,5 +7,11 @@ camel.init('orderRoute')
     .to(deliveryProcessor)
 .end()
 
+camel.onException('orderProcessFailing')
+    .retryRepetitions(2)
+    .retryDelay(500)
+    .fallbackProcessor(err => `error: ${err}`)
+.end()
+
 camel.sendMessage('orderRoute', {partNumber: 1, customer: 'Cure'})
 .then(exchange => console.log(exchange))

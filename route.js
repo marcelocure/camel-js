@@ -13,10 +13,10 @@ routes.init('orderProcessFailing')
 .end()
 
 routes.onException('orderProcessFailing')
-        .retryRepetitions(2)
-        .retryDelay(500)
-        .fallbackProcessor(err => `error: ${err}`)
-    .end()
+    .retryRepetitions(2)
+    .retryDelay(500)
+    .fallbackProcessor(err => `error: ${err}`)
+.end()
 
 return routes.sendMessage('orderProcessFailing', {})
 .then(exchange => {
