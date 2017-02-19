@@ -1,4 +1,4 @@
-[![Coverage Status](https://coveralls.io/repos/marcelocure/camel-js/badge.svg?branch=master)](https://coveralls.io/r/marcelocure/camel-js?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/marcelocure/camel-js/badge.svg?branch=master)](https://coveralls.io/github/marcelocure/camel-js?branch=master)
 # camel-js
 camel like project for nodejs
 
