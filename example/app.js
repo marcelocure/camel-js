@@ -7,7 +7,7 @@ camel.init('orderRoute')
     .to(deliveryProcessor)
 .end()
 
-camel.onException('orderProcessFailing')
+camel.onException('orderRoute')
     .retryRepetitions(2)
     .retryDelay(500)
     .fallbackProcessor(err => `error: ${err}`)
