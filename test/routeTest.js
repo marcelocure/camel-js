@@ -32,8 +32,8 @@ describe('Route loads properly', () =>  {
         .end()
 
         routes.onException('orderProcessFailing')
-                .retryRepetitions(5)
-                .retryDelay(5000)
+                .retryRepetitions(1)
+                .retryDelay(500)
                 .fallbackProcessor(err => `error: ${err}`)
             .end()
 

@@ -15,25 +15,25 @@ describe('Retry loads properly', () =>  {
 
     it('Should get correct strategy', () => {
         retry.onException('my first route')
-            .retryRepetitions(5)
-            .retryDelay(5000)
+            .retryRepetitions(1)
+            .retryDelay(1000)
         .end()
 
         retry.onException('my second route')
-            .retryRepetitions(6)
-            .retryDelay(6000)
+            .retryRepetitions(2)
+            .retryDelay(2000)
         .end()
 
         assert(retry.getStrategy('my second route'))
 
-        assert(retry.getStrategy('my second route').retryDelay, 5000)
-        assert(retry.getStrategy('my second route').retryRepetitions, 5)
+        assert(retry.getStrategy('my second route').retryDelay, 2000)
+        assert(retry.getStrategy('my second route').retryRepetitions, 2)
     })
 
     it('Should get default fallbackProcessor', () => {
         retry.onException('my route')
-            .retryRepetitions(5)
-            .retryDelay(5000)
+            .retryRepetitions(2)
+            .retryDelay(1000)
         .end()
 
         assert(retry.getExceptions()[0].strategy.routeName, 'my route')
@@ -42,8 +42,8 @@ describe('Retry loads properly', () =>  {
 
     it('Should get customized fallbackProcessor', () => {
         retry.onException('my route')
-            .retryRepetitions(5)
-            .retryDelay(5000)
+            .retryRepetitions(2)
+            .retryDelay(2000)
             .fallbackProcessor(err => console.log(err))
         .end()
 

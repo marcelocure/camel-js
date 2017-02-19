@@ -43,38 +43,37 @@ function sendMessage(routeName, message) {
     .catch(e => {
         const retryStrategy = retry.getStrategy(route.name)
         console.log(`Starting retries, exchange: [${JSON.stringify(exchange)}]`)
-        return doRetries(route, exchange, retryStrategy)
+        return doRetry(route, exchange, retryStrategy)
         .then (retryResult => {
-            if (retryResult.error) return '1'//retryStrategy.fallbackProcessor(retryResult.exchange)
+            if (retryResult.error) return retryStrategy.fallbackProcessor(retryResult.exchange)
             else return retryResult.exchange
         })
     })
 }
 
-function doRetries(route, exchange, retryStrategy) {
-    var i = 0
-    return new Promise((resolve, reject) => {
+function doRetry(route, exchange, retryStrategy, current=0) {
+    if (current === retryStrategy.retryRepetitions) return Promise.reject(exchange)
+    var current = current++
+    return Promise.delay(retryStrategy.retryDelay)
+    .then(() => {
         var err = true
-        // for(var i = 0 ; i < retryStrategy.retryRepetitions ; i++) {
-        console.log(`Retry attempt ${i}, exchange: [${JSON.stringify(exchange)}]`)
+        console.log(`Retry attempt ${current}, exchange: [${JSON.stringify(exchange)}]`)
         return processRoute(route, exchange)
         .then(exchange => {
-            // setTimeout(() => {
+            setTimeout(() => {
                 exchange = processRoute(route, exchange)
                 err = false
-                console.warn(`Retry attempt ${i} suceeded, exchange: [${JSON.stringify(exchange)}]`)
-                i = retryStrategy.retryRepetitions
-            // }, retryStrategy.retryDelay)
-            resolve({error: err, exchange: exchange})
+                console.warn(`Retry attempt ${current} suceeded, exchange: [${JSON.stringify(exchange)}]`)
+            }, retryStrategy.retryDelay)
+            return exchange
         })
         .catch(e => {
             err = true
             exchange.exception = {error: e}
-            console.error(`Retry attempt ${i} failed, exchange: [${exchange}], exception: [${e}]`)
-            reject(exchange)
+            console.error(`Retry attempt ${current} failed, exchange: [${exchange}], exception: [${e}]`)
+            return doRetry(route, exchange, retryStrategy, current + 1)
         })
     });
-    // }
 }
 
 const pipeline = (processors, exchange) => {
