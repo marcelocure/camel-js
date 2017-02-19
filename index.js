@@ -1,11 +1,11 @@
 const R = require('ramda'),
+      retry = require('./retry')
       Promise = require('bluebird');
 
 var routes = [],
     route,
     retryRepetitions = 1,
-    retryDelay = 1000,
-    routeFallbackProcessor = defaultFallbackProcessor
+    retryDelay = 1000
 
 function init(name, processor) {
     route = {}
@@ -42,24 +42,25 @@ function sendMessage(routeName, message) {
     try {
         return processRoute(route, exchange)
     } catch(e) {
+        const retryStrategy = retry.getStrategy(route.name)
         console.log(`Starting retries, exchange: [${JSON.stringify(exchange)}]`)
-        var retryResult = doRetries(route, exchange)
+        var retryResult = doRetries(route, exchange, retryStrategy)
         if (retryResult.error) routeFallbackProcessor(retryResult.exchange)
         else return retryResult.exchange
     }
 }
 
-function doRetries(route, exchange) {
+function doRetries(route, exchange, retryStrategy) {
     var err = true
-    for(var i = 0 ; i < retryRepetitions ; i++) {
+    for(var i = 0 ; i < retryStrategy.retryRepetitions ; i++) {
         console.log(`Retry attempt ${i}, exchange: [${JSON.stringify(exchange)}]`)
         try {
             setTimeout(() => {
                 exchange = processRoute(route, exchange)
                 err = false
                 console.warn(`Retry attempt ${i} suceeded, exchange: [${JSON.stringify(exchange)}]`)
-                i = retryRepetitions
-            }, retryDelay)
+                i = retryStrategy.retryRepetitions
+            }, retryStrategy.retryDelay)
         } catch(e) {
             err = true
             exchange.exception = e
@@ -70,24 +71,13 @@ function doRetries(route, exchange) {
     return {error: err, exchange: exchange}
 }
 
-function defaultFallbackProcessor(exchange) {
-    console.log(`defaultFallbackProcessor exchange: [${JSON.stringify(exchange)}]`)
-    throw exchange.exception
-}
-
-function onException(repetitions, delay, fallbackProcessor=defaultFallbackProcessor) {
-    retryRepetitions = repetitions
-    retryDelay = delay
-    routeFallbackProcessor = fallbackProcessor
-}
-
 const pipeline = (processors, exchange) => {
     return processors.reduce((agg, processor) =>
         agg.then(result => processor(result)), Promise.resolve(exchange))
 }
 
 module.exports = {
-    onException: onException,
+    onException: retry.onException,
     to: to,
     init: init,
     end: end,
