@@ -1,19 +1,22 @@
 var routes = require('./index');
+var assert = require('assert');
 
-routes.init('tweetProcess')
-.to(exchange => {
-    return {userId: 1, message: exchange}
-})
-.to(exchange => {
-    var tweet = exchange
-    tweet.date = new Date
-    return Promise.resolve(tweet)
-})
+routes.init('orderProcessFailing')
+    .to(exchange => {
+        throw 'Unexpected exception'
+    })
 .end()
 
-return routes.sendMessage('tweetProcess', 'my tweet')
-.then(exc => {
-    console.log(exc)
-    assert(exc.userId, 1)
-    assert(exc.message, 'my tweet')
+routes.onException('orderProcessFailing')
+        .retryRepetitions(5)
+        .retryDelay(5000)
+        .fallbackProcessor(err => `error: ${err}`)
+    .end()
+
+return routes.sendMessage('orderProcessFailing', {})
+.then(e => {
+    assert(e,'error: Unexpected exception')
+})
+.catch(e => {
+    assert(e.exception.error,'Unexpected exception')
 })

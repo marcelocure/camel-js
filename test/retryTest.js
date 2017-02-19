@@ -26,8 +26,8 @@ describe('Retry loads properly', () =>  {
 
         assert(retry.getStrategy('my second route'))
 
-        assert(retry.getStrategy('my second route').strategy.retryDelay, 5000)
-        assert(retry.getStrategy('my second route').strategy.retryRepetitions, 5)
+        assert(retry.getStrategy('my second route').retryDelay, 5000)
+        assert(retry.getStrategy('my second route').retryRepetitions, 5)
     })
 
     it('Should get default fallbackProcessor', () => {

@@ -26,15 +26,20 @@ describe('Route loads properly', () =>  {
 
     it('Should do retries and throw unexpected exception with default error processor', () =>  {
         routes.init('orderProcessFailing')
-        .to(exchange => {
-            throw 'Unexpected exception'
-        })
+            .to(exchange => {
+                throw 'Unexpected exception'
+            })
         .end()
-        routes.onException(5, 1000)
+
+        routes.onException('orderProcessFailing')
+                .retryRepetitions(5)
+                .retryDelay(5000)
+                .fallbackProcessor(err => `error: ${err}`)
+            .end()
 
         return routes.sendMessage('orderProcessFailing', {})
         .catch(e => {
-            assert(e,'Unexpected exception')
+            assert(e.exception.error,'Unexpected exception')
         })
     })
 
