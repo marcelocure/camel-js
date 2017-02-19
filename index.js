@@ -44,9 +44,9 @@ function sendMessage(routeName, message) {
         const retryStrategy = retry.getStrategy(route.name)
         console.log(`Starting retries, exchange: [${JSON.stringify(exchange)}]`)
         return doRetry(route, exchange, retryStrategy)
-        .then (retryResult => {
-            if (retryResult.error) return retryStrategy.fallbackProcessor(retryResult.exchange)
-            else return retryResult.exchange
+        .then (exchange => exchange)
+        .catch(exchange => {
+            return retryStrategy.fallbackProcessor(exchange)
         })
     })
 }
@@ -60,12 +60,10 @@ function doRetry(route, exchange, retryStrategy, current=0) {
         console.log(`Retry attempt ${current}, exchange: [${JSON.stringify(exchange)}]`)
         return processRoute(route, exchange)
         .then(exchange => {
-            setTimeout(() => {
-                exchange = processRoute(route, exchange)
-                err = false
-                console.warn(`Retry attempt ${current} suceeded, exchange: [${JSON.stringify(exchange)}]`)
-            }, retryStrategy.retryDelay)
-            return exchange
+            exchange = processRoute(route, exchange)
+            err = false
+            console.warn(`Retry attempt ${current} suceeded, exchange: [${JSON.stringify(exchange)}]`)
+            return Promise.resolve(exchange)
         })
         .catch(e => {
             err = true

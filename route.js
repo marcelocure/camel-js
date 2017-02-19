@@ -9,7 +9,7 @@ routes.init('orderProcessFailing')
 
 routes.onException('orderProcessFailing')
         .retryRepetitions(5)
-        .retryDelay(5000)
+        .retryDelay(500)
         .fallbackProcessor(err => `error: ${err}`)
     .end()
 
