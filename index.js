@@ -56,17 +56,14 @@ function doRetry(route, exchange, retryStrategy, current=0) {
     var current = current++
     return Promise.delay(retryStrategy.retryDelay)
     .then(() => {
-        var err = true
         console.log(`Retry attempt ${current}, exchange: [${JSON.stringify(exchange)}]`)
         return processRoute(route, exchange)
         .then(exchange => {
             exchange = processRoute(route, exchange)
-            err = false
             console.warn(`Retry attempt ${current} suceeded, exchange: [${JSON.stringify(exchange)}]`)
             return Promise.resolve(exchange)
         })
         .catch(e => {
-            err = true
             exchange.exception = {error: e}
             console.error(`Retry attempt ${current} failed, exchange: [${exchange}], exception: [${e}]`)
             return doRetry(route, exchange, retryStrategy, current + 1)

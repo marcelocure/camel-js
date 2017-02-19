@@ -9,6 +9,11 @@ var exception = {},
         fallbackProcessor: fallbackProcessor,
         end: end,
         getStrategy: getStrategy
+    },
+    defaultStrategy = {
+        fallbackProcessor : defaultFallbackProcessor,
+        retryRepetitions : 2,
+        retryDelay : 500
     }
 
 function onException(routeName) {
@@ -38,11 +43,12 @@ function end() {
 
 function defaultFallbackProcessor(exchange) {
     console.log(`defaultFallbackProcessor exchange: [${JSON.stringify(exchange)}]`)
-    throw exchange.exception
+    return Promise.reject(exchange)
 }
 
 function getStrategy(routeName) {
-    return R.find(R.propEq('routeName', routeName))(exceptions).strategy;
+    var exceptionStrategy = R.find(R.propEq('routeName', routeName))(exceptions);
+    return !exceptionStrategy ? defaultStrategy : exceptionStrategy.strategy
 }
 
 module.exports = thisObjs
