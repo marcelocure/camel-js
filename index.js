@@ -10,12 +10,17 @@ var routes = [],
 function init(name, processor) {
     route = {}
     route.name = name
-    route.processors = []
+    route.steps = []
     return this
 }
 
 function to(processor) {
-    route.processors.push({unit: processor, type: 'processor'})
+    route.steps.push({unit: processor, type: 'processor'})
+    return this
+}
+
+function toRoute(routeName) {
+    route.steps.push({unit: routeName, type: 'route'})
     return this
 }
 
@@ -32,8 +37,8 @@ function transformProcessor(processor) {
 }
 
 function processRoute(route, exchange) {
-    const processors = R.map(transformProcessor, route.processors)
-    return pipeline(processors, exchange)
+    // const steps = R.map(transformProcessor, route)
+    return execPipeline(route, exchange)
 }
 
 function sendMessage(routeName, message) {
@@ -71,15 +76,27 @@ function doRetry(route, exchange, retryStrategy, current=0) {
     });
 }
 
-const pipeline = (processors, exchange) => {
-    return processors.reduce((agg, processor) =>
-        agg.then(result => processor(result))
+const processStep = (ex, step) => {
+    if (step.type === 'route') {
+        var route = getRoute(step.unit)
+        return processRoute(route, ex)
+    } else {
+        return step.unit(ex)
+    } 
+}
+
+const execPipeline = (route, exchange) => {
+    const steps = route.steps
+
+    return steps.reduce((agg, step) =>
+        agg.then(ex => processStep(ex, step))
            .catch(err => {throw err}), Promise.resolve(exchange))
 }
 
 module.exports = {
     onException: retry.onException,
     to: to,
+    toRoute: toRoute,
     init: init,
     end: end,
     getRoutes: () => routes,

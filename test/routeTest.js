@@ -7,7 +7,7 @@ describe('Route loads properly', () =>  {
         .to(exchange => console.log('my processor'))
         .end()
         assert(routes.getRoutes()[0].name, 'my route')
-        assert(routes.getRoutes()[0].processors.length, 2)
+        assert(routes.getRoutes()[0].steps.length, 2)
     });
 
     it('should return exchange with status', () =>  {
@@ -99,6 +99,37 @@ describe('Route loads properly', () =>  {
         .then(exc => {
             assert(exc.userId, 1)
             assert(exc.message, 'my tweet')
+        })
+    })
+
+    it('should return exchange with proper result when route is composed by other route', () =>  {
+        routes.init('billingRoute')
+        .to(exchange => {
+            var order = exchange
+            order.billed = true
+            return order
+        })
+        .end()
+        
+        routes.init('orderRoute')
+        .to(exchange => {
+            var order = exchange
+            order.date = new Date
+            return order
+        })
+        .toRoute('billingRoute')
+        .to(exchange => {
+            var order = exchange
+            order.status = 'Processed'
+            return order
+        })
+        .end()
+
+        return routes.sendMessage('orderRoute', {message: 'message'})
+        .then(exc => {
+            assert(exc.status, 'Processed')
+            assert(exc.billed, true)
+            assert(exc.message, 'message')
         })
     })
 })
