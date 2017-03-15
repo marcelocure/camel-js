@@ -32,12 +32,7 @@ function getRoute(routeName) {
     return R.find(R.propEq('name', routeName))(routes)
 }
 
-function transformProcessor(processor) {
-    return processor.type === 'route' ? processRoute : processor.unit
-}
-
 function processRoute(route, exchange) {
-    // const steps = R.map(transformProcessor, route)
     return execPipeline(route, exchange)
 }
 
