@@ -32,7 +32,7 @@ function transformProcessor(processor) {
 }
 
 function processRoute(route, exchange) {
-    const processors = R.map(transformProcessor ,route.processors)
+    const processors = R.map(transformProcessor, route.processors)
     return pipeline(processors, exchange)
 }
 
