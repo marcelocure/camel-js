@@ -19,5 +19,18 @@ camel.onException('orderRoute')
     .fallbackProcessor(err => `error: ${err}`)
 .end()
 
-camel.sendMessage('orderRoute', {partNumber: 1, customer: 'Cure'})
-.then(exchange => console.log(exchange))
+camel.from('rabbitmq', {
+            host: 'localhost',
+            port: '5672',
+            username: 'admin',
+            password: 'admin',
+            exchangeName: 'events_exchange',
+            queueName: 'myqueue',
+            durable: true,
+            exclusive: true,
+            routingKey: 'order.region.processing'
+        })
+    .to(exchange => console.log(exchange))
+.end()
+// camel.sendMessage('orderRoute', {partNumber: 1, customer: 'Cure'})
+// .then(exchange => console.log(exchange))

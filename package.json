@@ -12,6 +12,7 @@
   "author": "marcelo cure",
   "license": "ISC",
   "dependencies": {
+    "amqplib": "^0.4.2",
     "bluebird": "^3.4.7",
     "promise-sequence": "^0.2.2",
     "ramda": "^0.23.0"

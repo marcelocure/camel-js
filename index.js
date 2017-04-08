@@ -1,5 +1,6 @@
 const R = require('ramda'),
       retry = require('./retry')
+      core = require('./adapters/core')
       Promise = require('bluebird');
 
 var routes = [],
@@ -7,11 +8,18 @@ var routes = [],
     retryRepetitions = 1,
     retryDelay = 1000
 
-function init(name, processor) {
+function init(name) {
     route = {}
     route.name = name
     route.steps = []
     return this
+}
+
+function from(protocol, options) {
+    const routeName = protocol + JSON.stringify(options)
+    core.from(protocol, options, routeName)
+    var res = init(routeName)
+    return res
 }
 
 function to(processor) {
@@ -95,5 +103,6 @@ module.exports = {
     init: init,
     end: end,
     getRoutes: () => routes,
-    sendMessage: sendMessage
+    sendMessage: sendMessage,
+    from: from
 }
