@@ -1,13 +1,22 @@
 import R from 'ramda';
 import Promise from 'bluebird';
 import retry from './retry.js';
-import AWS from 'aws-sdk';
+import { 
+  from as fromTrigger, 
+  createSQSConnection, 
+  fromSQS as fromSQSTrigger, 
+  startSQSPolling, 
+  stopSQSPolling, 
+  stopAllSQSPolling, 
+  processRouteListeners,
+  initializeRouteTriggers,
+  getRouteListeners,
+  getSQSConnections,
+  getSQSPollingIntervals
+} from './route-triggers.js';
 
 let routes = [];
 let route;
-let routeListeners = {}; // Track which routes listen to other routes
-let sqsConnections = {}; // Track SQS connections by name
-let sqsPollingIntervals = {}; // Track SQS polling intervals for cleanup
 
 function init(name) {
   route = {};
@@ -26,61 +35,14 @@ function toRoute(routeName) {
   return this;
 }
 
+// Route trigger functions are now in route-triggers.js
 function from(routeName) {
-  // Register this route as a listener to the source route
-  if (!routeListeners[routeName]) {
-    routeListeners[routeName] = [];
-  }
-  routeListeners[routeName].push(route.name);
-  return this;
-}
-
-function createSQSConnection(connectionName, config) {
-  // Store SQS connection configuration
-  sqsConnections[connectionName] = {
-    region: config.region || 'us-east-1',
-    accessKeyId: config.accessKeyId,
-    secretAccessKey: config.secretAccessKey,
-    maxMessages: config.maxMessages || 10,
-    waitTimeSeconds: config.waitTimeSeconds || 20,
-    visibilityTimeoutSeconds: config.visibilityTimeoutSeconds || 30,
-    pollingInterval: config.pollingInterval || 1000
-  };
+  fromTrigger(routeName, route);
   return this;
 }
 
 function fromSQS(queueNameOrUrl, options = {}) {
-  // Check if it's a connection name or full queue URL
-  let sqsConfig;
-  
-  if (sqsConnections[queueNameOrUrl]) {
-    // It's a connection name, use stored configuration
-    const connection = sqsConnections[queueNameOrUrl];
-    sqsConfig = {
-      queueUrl: options.queueUrl || queueNameOrUrl, // Use provided URL or connection name as URL
-      region: connection.region,
-      accessKeyId: connection.accessKeyId,
-      secretAccessKey: connection.secretAccessKey,
-      maxMessages: options.maxMessages || connection.maxMessages,
-      waitTimeSeconds: options.waitTimeSeconds || connection.waitTimeSeconds,
-      visibilityTimeoutSeconds: options.visibilityTimeoutSeconds || connection.visibilityTimeoutSeconds,
-      pollingInterval: options.pollingInterval || connection.pollingInterval
-    };
-  } else {
-    // It's a full queue URL, use provided options
-    sqsConfig = {
-      queueUrl: queueNameOrUrl,
-      region: options.region || 'us-east-1',
-      accessKeyId: options.accessKeyId,
-      secretAccessKey: options.secretAccessKey,
-      maxMessages: options.maxMessages || 10,
-      waitTimeSeconds: options.waitTimeSeconds || 20,
-      visibilityTimeoutSeconds: options.visibilityTimeoutSeconds || 30,
-      pollingInterval: options.pollingInterval || 1000
-    };
-  }
-  
-  route.sqsConfig = sqsConfig;
+  fromSQSTrigger(queueNameOrUrl, options, route);
   return this;
 }
 
@@ -117,18 +79,7 @@ async function processRoute(route, exchange) {
   const result = await execPipeline(route, exchange);
   
   // After the route finishes, trigger any listeners
-  if (routeListeners[route.name]) {
-    const listeners = routeListeners[route.name];
-    listeners.forEach(listenerRouteName => {
-      const listenerRoute = getRoute(listenerRouteName);
-      if (listenerRoute) {
-        // Execute the listener route with the result of the source route
-        processRoute(listenerRoute, result).catch(err => {
-          console.error(`Error executing listener route ${listenerRouteName}:`, err);
-        });
-      }
-    });
-  }
+  processRouteListeners(route, result);
   
   return result;
 }
@@ -171,73 +122,8 @@ async function doRetry(retryRoute, retryExchange, retryStrategy, currentAttempt 
   }
 }
 
-function startSQSPolling(route) {
-  const sqs = new AWS.SQS({
-    region: route.sqsConfig.region,
-    accessKeyId: route.sqsConfig.accessKeyId,
-    secretAccessKey: route.sqsConfig.secretAccessKey
-  });
-  
-  const pollQueue = async () => {
-    try {
-      const params = {
-        QueueUrl: route.sqsConfig.queueUrl,
-        MaxNumberOfMessages: route.sqsConfig.maxMessages,
-        WaitTimeSeconds: route.sqsConfig.waitTimeSeconds,
-        VisibilityTimeoutSeconds: route.sqsConfig.visibilityTimeoutSeconds
-      };
-      
-      const result = await sqs.receiveMessage(params).promise();
-      
-      if (result.Messages && result.Messages.length > 0) {
-        for (const message of result.Messages) {
-          try {
-            // Parse the message body
-            const messageBody = JSON.parse(message.Body);
-            
-            // Process the message through the route
-            await processRoute(route, messageBody);
-            
-            // Delete the message from the queue after successful processing
-            await sqs.deleteMessage({
-              QueueUrl: route.sqsConfig.queueUrl,
-              ReceiptHandle: message.ReceiptHandle
-            }).promise();
-            
-            console.log(`Processed SQS message for route ${route.name}:`, message.MessageId);
-          } catch (error) {
-            console.error(`Error processing SQS message for route ${route.name}:`, error);
-            // Message will be returned to queue after visibility timeout
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`Error polling SQS queue for route ${route.name}:`, error);
-    }
-    
-    // Schedule next poll
-    const intervalId = setTimeout(pollQueue, route.sqsConfig.pollingInterval);
-    sqsPollingIntervals[route.name] = intervalId;
-  };
-  
-  // Start polling
-  pollQueue();
-  console.log(`Started SQS polling for route ${route.name} on queue ${route.sqsConfig.queueUrl}`);
-}
-
-function stopSQSPolling(routeName) {
-  if (sqsPollingIntervals[routeName]) {
-    clearTimeout(sqsPollingIntervals[routeName]);
-    delete sqsPollingIntervals[routeName];
-    console.log(`Stopped SQS polling for route ${routeName}`);
-  }
-}
-
-function stopAllSQSPolling() {
-  Object.keys(sqsPollingIntervals).forEach(routeName => {
-    stopSQSPolling(routeName);
-  });
-}
+// SQS polling functions are now in route-triggers.js
+// Functions are imported directly above
 
 async function sendMessage(routeName, message) {
   const targetRoute = getRoute(routeName);
@@ -257,6 +143,9 @@ async function sendMessage(routeName, message) {
   }
 }
 
+// Initialize route triggers module after functions are defined
+initializeRouteTriggers(processRoute, getRoute);
+
 export default {
   onException: retry.onException,
   to,
@@ -266,6 +155,9 @@ export default {
   createSQSConnection,
   stopSQSPolling,
   stopAllSQSPolling,
+  getRouteListeners,
+  getSQSConnections,
+  getSQSPollingIntervals,
   init,
   end,
   getRoutes: () => routes,
