@@ -1,23 +1,33 @@
-var camel = require('../index')
-const orderProcessor = require('./processors/orderProcessor')
-const deliveryProcessor = require('./processors/deliveryProcessor')
-const billingProcessor = require('./processors/billingProcessor')
+import camel from '../src/index.js';
+import orderProcessor from './processors/orderProcessor.js';
+import deliveryProcessor from './processors/deliveryProcessor.js';
+import billingProcessor from './processors/billingProcessor.js';
 
-camel.init('billingRoute')
+camel
+    .init('billingRoute')
     .to(billingProcessor)
-.end()
+    .end();
 
-camel.init('orderRoute')
+camel
+    .init('orderRoute')
     .to(orderProcessor)
     .toRoute('billingRoute')
     .to(deliveryProcessor)
-.end()
+    .end();
 
-camel.onException('orderRoute')
+camel
+    .init('orderRoute')
+    .to(orderProcessor)
+    .toRoute('billingRoute')
+    .to(deliveryProcessor)
+    .end();
+
+camel
+    .onException('orderRoute')
     .retryRepetitions(2)
     .retryDelay(500)
     .fallbackProcessor(err => `error: ${err}`)
-.end()
+    .end();
 
-camel.sendMessage('orderRoute', {partNumber: 1, customer: 'Cure'})
-.then(exchange => console.log(exchange))
+const exchange = await camel.sendMessage('orderRoute', {partNumber: 1, customer: 'Cure'})
+console.log(exchange);

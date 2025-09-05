@@ -1,7 +1,6 @@
-const R = require('ramda');
-const Promise = require('bluebird');
-
-const retry = require('./retry');
+import R from 'ramda';
+import Promise from 'bluebird';
+import retry from './retry.js';
 
 let routes = [];
 let route;
@@ -78,7 +77,7 @@ function sendMessage(routeName, message) {
   });
 }
 
-module.exports = {
+export default {
   onException: retry.onException,
   to,
   toRoute,

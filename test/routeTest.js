@@ -1,5 +1,5 @@
-var routes = require('../index');
-var assert = require('assert');
+import routes from '../src/index.js';
+import assert from 'assert';
 
 describe('Route loads properly', () =>  {
     it('should load route with init, name and second processors', () =>  {

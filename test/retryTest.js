@@ -1,5 +1,5 @@
-var retry = require('../retry');
-var assert = require('assert');
+import retry from '../src/retry.js';
+import assert from 'assert';
 
 describe('Retry loads properly', () =>  {
     it('should load retry with proper params', () =>  {

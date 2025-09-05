@@ -1,4 +1,4 @@
-const R = require('ramda');
+import R from 'ramda';
 
 const defaultStrategy = {
   fallbackProcessor: defaultFallbackProcessor,
@@ -53,4 +53,4 @@ function getStrategy(routeName) {
   return !exceptionStrategy ? defaultStrategy : exceptionStrategy.strategy;
 }
 
-module.exports = thisObjs;
+export default thisObjs;
