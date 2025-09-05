@@ -210,6 +210,36 @@ npm test
 npm run test-cov
 ```
 
+This will run all tests with coverage reporting using c8, which supports ES6 modules.
+
+#### Coverage Options
+
+**Basic Coverage Report:**
+```bash
+npm run test-cov
+```
+
+**HTML Coverage Report:**
+```bash
+npx c8 --reporter=html mocha
+```
+
+**Text Coverage Report:**
+```bash
+npx c8 --reporter=text mocha
+```
+
+**Coverage with LCOV output (for CI/CD):**
+```bash
+npx c8 --reporter=lcov mocha
+```
+
+#### Current Coverage
+- **Statements:** 97.17%
+- **Branches:** 97.29%
+- **Functions:** 95%
+- **Lines:** 97.17%
+
 ### Project Structure
 
 ```

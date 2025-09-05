@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/index.js",
     "test": "mocha",
-    "test-cov": "istanbul cover _mocha",
+    "test-cov": "c8 mocha",
     "coveralls": "cat ./coverage/lcov.info | ./node_modules/.bin/coveralls"
   },
   "author": "marcelo cure",
@@ -22,6 +22,7 @@
     "ramda": "^0.23.0"
   },
   "devDependencies": {
+    "c8": "^7.14.0",
     "coveralls": "^2.11.15",
     "eslint": "^3.19.0",
     "eslint-config-airbnb-base": "^11.3.1",
