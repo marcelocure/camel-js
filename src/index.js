@@ -4,6 +4,7 @@ import retry from './retry.js';
 
 let routes = [];
 let route;
+let routeListeners = {}; // Track which routes listen to other routes
 
 function init(name) {
   route = {};
@@ -19,6 +20,15 @@ function to(processor) {
 
 function toRoute(routeName) {
   route.steps.push({ unit: routeName, type: 'route' });
+  return this;
+}
+
+function from(routeName) {
+  // Register this route as a listener to the source route
+  if (!routeListeners[routeName]) {
+    routeListeners[routeName] = [];
+  }
+  routeListeners[routeName].push(route.name);
   return this;
 }
 
@@ -38,10 +48,32 @@ const execPipeline = (execRoute, exchange) => {
 };
 
 function processRoute(route, exchange) {
-  return execPipeline(route, exchange);
+  return execPipeline(route, exchange)
+    .then(result => {
+      // After the route finishes, trigger any listeners
+      if (routeListeners[route.name]) {
+        const listeners = routeListeners[route.name];
+        listeners.forEach(listenerRouteName => {
+          const listenerRoute = getRoute(listenerRouteName);
+          if (listenerRoute) {
+            // Execute the listener route with the result of the source route
+            processRoute(listenerRoute, result).catch(err => {
+              console.error(`Error executing listener route ${listenerRouteName}:`, err);
+            });
+          }
+        });
+      }
+      return result;
+    });
 }
 
-const processStep = (ex, step) => step.type === 'route' ? processRoute(getRoute(step.unit), ex) : step.unit(ex);
+const processStep = (ex, step) => {
+  if (step.type === 'route') {
+    return processRoute(getRoute(step.unit), ex);
+  } else {
+    return step.unit(ex);
+  }
+};
 
 function doRetry(retryRoute, retryExchange, retryStrategy, currentAttempt = 0) {
   let current = R.clone(currentAttempt);
@@ -81,6 +113,7 @@ export default {
   onException: retry.onException,
   to,
   toRoute,
+  from,
   init,
   end,
   getRoutes: () => routes,

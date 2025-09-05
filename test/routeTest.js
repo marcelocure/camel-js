@@ -132,4 +132,35 @@ describe('Route loads properly', () =>  {
             assert(exc.message, 'message')
         })
     })
+
+    it('should automatically trigger routes that listen to other routes using from', (done) =>  {
+        let targetRouteExecuted = false;
+        
+        routes.init('sourceRoute')
+        .to(exchange => {
+            return { ...exchange, processed: true, source: 'sourceRoute' }
+        })
+        .end()
+        
+        routes.init('targetRoute')
+        .from('sourceRoute')
+        .to(exchange => {
+            targetRouteExecuted = true;
+            assert(exchange.processed, true)
+            assert(exchange.source, 'sourceRoute')
+            return { ...exchange, final: true, target: 'targetRoute' }
+        })
+        .end()
+
+        // Execute the source route - this should automatically trigger the target route
+        routes.sendMessage('sourceRoute', {message: 'test'})
+        .then(() => {
+            // Give a moment for the async listener to execute
+            setTimeout(() => {
+                assert(targetRouteExecuted, true)
+                done()
+            }, 100)
+        })
+        .catch(done)
+    })
 })

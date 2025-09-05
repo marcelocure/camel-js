@@ -57,6 +57,9 @@ Adds a processor function to the current route.
 #### `camel.toRoute(routeName)`
 Adds a reference to another route in the current route.
 
+#### `camel.from(routeName)`
+Registers the current route as a listener to another route. When the specified route finishes executing, the current route will automatically be triggered with the output of the source route.
+
 #### `camel.end()`
 Finalizes the current route definition.
 
@@ -132,6 +135,34 @@ camel
   .toRoute('billingRoute')
   .toRoute('deliveryRoute')
   .end();
+```
+
+### Event-Driven Routes with `from`
+
+```javascript
+import camel from 'camel-js';
+
+// Define a source route
+camel
+  .init('dataProcessor')
+  .to(exchange => {
+    return { ...exchange, processed: true, timestamp: new Date() };
+  })
+  .end();
+
+// Define a listener route that automatically executes when dataProcessor finishes
+camel
+  .init('notificationProcessor')
+  .from('dataProcessor')  // Listen to dataProcessor completion
+  .to(exchange => {
+    console.log('Notification sent for:', exchange);
+    return { ...exchange, notificationSent: true };
+  })
+  .end();
+
+// Execute the source route - this will automatically trigger the notification route
+const result = await camel.sendMessage('dataProcessor', { message: 'test' });
+// The notificationProcessor will automatically execute with the result
 ```
 
 ### Error Handling with Retries
