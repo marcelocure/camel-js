@@ -45,7 +45,7 @@ function end() {
 
 function defaultFallbackProcessor(exchange) {
   console.log(`defaultFallbackProcessor exchange: [${JSON.stringify(exchange)}]`);
-  return Promise.reject(exchange);
+  throw exchange;
 }
 
 function getStrategy(routeName) {

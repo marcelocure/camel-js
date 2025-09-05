@@ -40,31 +40,39 @@ function getRoute(routeName) {
   return R.find(R.propEq('name', routeName))(routes);
 }
 
-const execPipeline = (execRoute, exchange) => {
+const execPipeline = async (execRoute, exchange) => {
   const steps = execRoute.steps;
-  return steps.reduce((agg, step) => agg
-    .then(ex => processStep(ex, step))
-    .catch((err) => { throw err; }), Promise.resolve(exchange));
+  let currentExchange = exchange;
+  
+  for (const step of steps) {
+    try {
+      currentExchange = await processStep(currentExchange, step);
+    } catch (err) {
+      throw err;
+    }
+  }
+  
+  return currentExchange;
 };
 
-function processRoute(route, exchange) {
-  return execPipeline(route, exchange)
-    .then(result => {
-      // After the route finishes, trigger any listeners
-      if (routeListeners[route.name]) {
-        const listeners = routeListeners[route.name];
-        listeners.forEach(listenerRouteName => {
-          const listenerRoute = getRoute(listenerRouteName);
-          if (listenerRoute) {
-            // Execute the listener route with the result of the source route
-            processRoute(listenerRoute, result).catch(err => {
-              console.error(`Error executing listener route ${listenerRouteName}:`, err);
-            });
-          }
+async function processRoute(route, exchange) {
+  const result = await execPipeline(route, exchange);
+  
+  // After the route finishes, trigger any listeners
+  if (routeListeners[route.name]) {
+    const listeners = routeListeners[route.name];
+    listeners.forEach(listenerRouteName => {
+      const listenerRoute = getRoute(listenerRouteName);
+      if (listenerRoute) {
+        // Execute the listener route with the result of the source route
+        processRoute(listenerRoute, result).catch(err => {
+          console.error(`Error executing listener route ${listenerRouteName}:`, err);
         });
       }
-      return result;
     });
+  }
+  
+  return result;
 }
 
 const processStep = (ex, step) => {
@@ -75,38 +83,52 @@ const processStep = (ex, step) => {
   }
 };
 
-function doRetry(retryRoute, retryExchange, retryStrategy, currentAttempt = 0) {
+async function doRetry(retryRoute, retryExchange, retryStrategy, currentAttempt = 0) {
   let current = R.clone(currentAttempt);
   let exchange = R.clone(retryExchange);
-  if (current === retryStrategy.retryRepetitions) return Promise.reject(exchange);
+  
+  if (current === retryStrategy.retryRepetitions) {
+    throw exchange;
+  }
+  
   current = current++;
-  return Promise.delay(retryStrategy.retryDelay)
-    .then(() => {
-      console.log(`Retry attempt ${current}, exchange: [${JSON.stringify(exchange)}]`);
-      return processRoute(retryRoute, exchange)
-        .then((ex) => {
-          exchange = processRoute(retryRoute, ex);
-          console.warn(`Retry attempt ${current} suceeded, exchange: [${JSON.stringify(exchange)}]`);
-          return Promise.resolve(exchange);
-        })
-        .catch((e) => {
-          exchange.exception = { error: e };
-          console.error(`Retry attempt ${current} failed, exchange: [${exchange}], exception: [${e}]`);
-          return doRetry(retryRoute, exchange, retryStrategy, current + 1);
-        });
-    });
+  
+  try {
+    await Promise.delay(retryStrategy.retryDelay);
+    
+    console.log(`Retry attempt ${current}, exchange: [${JSON.stringify(exchange)}]`);
+    
+    try {
+      const ex = await processRoute(retryRoute, exchange);
+      exchange = await processRoute(retryRoute, ex);
+      console.warn(`Retry attempt ${current} suceeded, exchange: [${JSON.stringify(exchange)}]`);
+      return exchange;
+    } catch (e) {
+      exchange.exception = { error: e };
+      console.error(`Retry attempt ${current} failed, exchange: [${exchange}], exception: [${e}]`);
+      return await doRetry(retryRoute, exchange, retryStrategy, current + 1);
+    }
+  } catch (error) {
+    throw error;
+  }
 }
 
-function sendMessage(routeName, message) {
+async function sendMessage(routeName, message) {
   const targetRoute = getRoute(routeName);
   const exchange = message;
-  return processRoute(targetRoute, exchange)
-  .catch(() => {
+  
+  try {
+    return await processRoute(targetRoute, exchange);
+  } catch (error) {
     const retryStrategy = retry.getStrategy(targetRoute.name);
     console.log(`Starting retries, exchange: [${JSON.stringify(exchange)}]`);
-    return doRetry(targetRoute, exchange, retryStrategy)
-      .catch(ex => retryStrategy.fallbackProcessor(ex));
-  });
+    
+    try {
+      return await doRetry(targetRoute, exchange, retryStrategy);
+    } catch (retryError) {
+      return retryStrategy.fallbackProcessor(retryError);
+    }
+  }
 }
 
 export default {
