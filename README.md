@@ -60,6 +60,32 @@ Adds a reference to another route in the current route.
 #### `camel.from(routeName)`
 Registers the current route as a listener to another route. When the specified route finishes executing, the current route will automatically be triggered with the output of the source route.
 
+#### `camel.createSQSConnection(connectionName, config)`
+Creates a reusable SQS connection configuration that can be referenced by name in `fromSQS` calls.
+
+**Parameters:**
+- `connectionName` (string): Name to reference this connection
+- `config` (object): Connection configuration
+  - `region` (string): AWS region (default: 'us-east-1')
+  - `accessKeyId` (string): AWS access key ID
+  - `secretAccessKey` (string): AWS secret access key
+  - `maxMessages` (number): Maximum messages to receive per poll (default: 10)
+  - `waitTimeSeconds` (number): Long polling wait time (default: 20)
+  - `visibilityTimeoutSeconds` (number): Message visibility timeout (default: 30)
+  - `pollingInterval` (number): Polling interval in milliseconds (default: 1000)
+
+#### `camel.fromSQS(queueNameOrUrl, options)`
+Registers the current route to be triggered by AWS SQS messages. Can use either a connection name or full queue URL.
+
+**Parameters:**
+- `queueNameOrUrl` (string): Either a connection name (created with `createSQSConnection`) or full SQS queue URL
+- `options` (object): Optional overrides for connection settings
+  - `queueUrl` (string): Required when using connection name
+  - `maxMessages` (number): Override max messages per poll
+  - `waitTimeSeconds` (number): Override long polling wait time
+  - `visibilityTimeoutSeconds` (number): Override message visibility timeout
+  - `pollingInterval` (number): Override polling interval
+
 #### `camel.end()`
 Finalizes the current route definition.
 
@@ -163,6 +189,50 @@ camel
 // Execute the source route - this will automatically trigger the notification route
 const result = await camel.sendMessage('dataProcessor', { message: 'test' });
 // The notificationProcessor will automatically execute with the result
+```
+
+### AWS SQS Integration with `fromSQS`
+
+```javascript
+import camel from 'camel-js';
+
+// Create a reusable SQS connection
+camel.createSQSConnection('myAWSConnection', {
+  region: 'us-east-1',
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  maxMessages: 5,
+  waitTimeSeconds: 10,
+  visibilityTimeoutSeconds: 30,
+  pollingInterval: 2000
+});
+
+// Define a route that processes SQS messages using connection name
+camel
+  .init('sqsProcessor')
+  .fromSQS('myAWSConnection', {
+    queueUrl: 'https://sqs.us-east-1.amazonaws.com/123456789012/my-queue'
+  })
+  .to(exchange => {
+    console.log('Processing SQS message:', exchange);
+    return { ...exchange, processed: true, processedAt: new Date() };
+  })
+  .end();
+
+// Another route using the same connection but different queue
+camel
+  .init('sqsProcessor2')
+  .fromSQS('myAWSConnection', {
+    queueUrl: 'https://sqs.us-east-1.amazonaws.com/123456789012/another-queue'
+  })
+  .to(exchange => {
+    console.log('Processing from another queue:', exchange);
+    return { ...exchange, processed: true };
+  })
+  .end();
+
+// SQS polling starts automatically when routes are defined
+// Messages from the SQS queues will trigger the route processing
 ```
 
 ### Error Handling with Retries

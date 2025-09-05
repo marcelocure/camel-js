@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from 'uuid';
+
 export default exchange => {
     console.log('Sending notification for:', exchange);
     
@@ -5,7 +7,7 @@ export default exchange => {
     const notification = {
         ...exchange,
         notificationSent: true,
-        notificationId: `notif_${Date.now()}`,
+        notificationId: uuidv4(),
         sentAt: new Date(),
         type: 'order_notification'
     };
